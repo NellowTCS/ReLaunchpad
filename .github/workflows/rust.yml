@@ -35,20 +35,30 @@ jobs:
 
     # Install frontend dependencies
     - name: Install Node dependencies
-      run: npm install
+      run: |
+        cd ReLaunchpad
+        npm install
 
     # Build frontend
     - name: Build frontend
-      run: npm run build
+      run: |
+        cd ReLaunchpad
+        npm run build
 
     # Rust build
     - name: Build Rust
-      run: cargo build --verbose
+      run: |
+        cd ReLaunchpad
+        cargo build --verbose
 
     # Run Rust tests
     - name: Run Rust tests
-      run: cargo test --verbose
+      run: |
+        cd ReLaunchpad
+        cargo test --verbose
 
-    # Optional: check TypeScript/Svelte
+    # check TypeScript/Svelte
     - name: Run Svelte type check
-      run: npm run check
+      run: |
+        cd ReLaunchpad
+        npm run check
