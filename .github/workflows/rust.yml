@@ -18,6 +18,10 @@ jobs:
       # Checkout repo
       - uses: actions/checkout@v4
 
+      - name: ls
+        run: |
+          ls
+          
       # Set up Node
       - uses: actions/setup-node@v3
         with:
