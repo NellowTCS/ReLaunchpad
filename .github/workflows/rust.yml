@@ -29,24 +29,31 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
         working-directory: ReLaunchpad
-        
-      # Build frontend
-      - name: Build frontend
-        run: npm run build
+
+      # Cache Rust/Cargo dependencies
+      - name: Cache Cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-cache-${{ runner.os }}-
+
+      # Build Tauri app (frontend + Rust backend) in release mode
+      - name: Build Tauri app
+        run: npm run tauri:build -- --release
         working-directory: ReLaunchpad
 
-      # Set up Rust
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      # Build Rust library
-      - name: Build Rust library
-        run: cargo build --verbose
-        working-directory: ReLaunchpad/src-tauri
-
-      # Run Rust tests
+      # Run Rust tests (release)
       - name: Run Rust tests
-        run: cargo test --verbose
+        run: cargo test --release
         working-directory: ReLaunchpad/src-tauri
+
+      # Upload built app as artifact
+      - name: Upload Tauri App Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ReLaunchpad-macos
+          path: ReLaunchpad/src-tauri/target/release/bundle/macos
