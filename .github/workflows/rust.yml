@@ -21,6 +21,7 @@ jobs:
       - name: ls
         run: |
           ls
+          cd ReLaunchpad
           
       # Set up Node
       - uses: actions/setup-node@v3
