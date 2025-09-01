@@ -2,98 +2,244 @@
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
 
-  type AppInfo = { name: string; bundle_id: string; path: string; icon_path?: string };
+  type AppInfo = {
+    name: string;
+    bundle_id: string;
+    path: string;
+    icon_path?: string;
+  };
 
   let apps: AppInfo[] = [];
+  let filteredApps: AppInfo[] = [];
+  let frequentApps: AppInfo[] = [];
   let query = "";
+  let loading = true;
+  let selectedIndex = 0;
+  let searchInput: HTMLInputElement;
+  let viewMode: "grid" | "list" = "grid";
+  let showFrequent = false;
+
+  // Reactive filtering with categories
+  $: {
+    if (query.trim()) {
+      const searchTerm = query.toLowerCase().trim();
+      filteredApps = apps.filter(
+        (app) =>
+          app.name.toLowerCase().includes(searchTerm) ||
+          app.bundle_id.toLowerCase().includes(searchTerm)
+      );
+      showFrequent = false;
+    } else {
+      if (showFrequent && frequentApps.length > 0) {
+        filteredApps = frequentApps;
+      } else {
+        filteredApps = apps;
+      }
+    }
+    // Reset selection when filter changes
+    selectedIndex = 0;
+  }
 
   async function loadApps() {
-    apps = await invoke("list_apps");
-    apps.sort((a, b) => a.name.localeCompare(b.name));
+    try {
+      loading = true;
+      const [appsResult, frequentResult] = await Promise.all([
+        invoke("list_apps") as Promise<AppInfo[]>,
+        invoke("get_frequent_apps").catch(() => []) as Promise<AppInfo[]>, // Fallback to empty array if not implemented yet
+      ]);
+
+      apps = appsResult;
+      apps.sort((a, b) => a.name.localeCompare(b.name));
+
+      frequentApps = frequentResult as AppInfo[];
+      filteredApps = apps;
+    } catch (error) {
+      console.error("Failed to load apps:", error);
+    } finally {
+      loading = false;
+    }
   }
 
-  function launch(bundleId: string) {
-    invoke("open_app", { bundleId });
+  async function launch(bundleId: string) {
+    try {
+      await invoke("open_app", { bundleId });
+      // Track app usage for frequent apps
+      await invoke("track_app_usage", { bundleId }).catch(console.warn);
+
+      // Hide window after launching
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().hide();
+    } catch (error) {
+      console.error("Failed to launch app:", error);
+    }
   }
 
-  onMount(loadApps);
+  async function hideWindow() {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().hide();
+    } catch (error) {
+      console.error("Failed to hide window:", error);
+    }
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (loading || filteredApps.length === 0) return;
+
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, filteredApps.length - 1);
+        scrollToSelected();
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        scrollToSelected();
+        break;
+      case "Enter":
+        event.preventDefault();
+        if (filteredApps[selectedIndex]) {
+          launch(filteredApps[selectedIndex].bundle_id);
+        }
+        break;
+      case "Escape":
+        event.preventDefault();
+        if (query) {
+          query = "";
+        } else {
+          // Hide window on second Escape
+          hideWindow();
+        }
+        selectedIndex = 0;
+        break;
+      case "Tab":
+        event.preventDefault();
+        showFrequent = !showFrequent && frequentApps.length > 0;
+        break;
+      case "ArrowRight":
+        if (event.metaKey) {
+          event.preventDefault();
+          viewMode = viewMode === "grid" ? "list" : "grid";
+        }
+        break;
+    }
+  }
+
+  function scrollToSelected() {
+    // Scroll selected item into view
+    setTimeout(() => {
+      const selected = document.querySelector(".tile.selected");
+      if (selected) {
+        selected.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }, 0);
+  }
+
+  function selectApp(index: number) {
+    selectedIndex = index;
+  }
+
+  onMount(() => {
+    loadApps();
+    // Focus search input on mount
+    setTimeout(() => {
+      if (searchInput) {
+        searchInput.focus();
+      }
+    }, 100);
+  });
 </script>
 
+<svelte:window on:keydown={handleKeydown} />
+
 <main class="container">
-  <input placeholder="Search apps…" bind:value={query} />
-
-  <div class="grid">
-    {#each apps.filter(a => a.name.toLowerCase().includes(query.toLowerCase())) as app}
-      <button class="tile" on:click={() => launch(app.bundle_id)}>
-        {#if app.icon_path}
-          <img src={"file://" + app.icon_path} alt={app.name} />
+  <div class="header">
+    <div class="search-container">
+      <input
+        bind:this={searchInput}
+        placeholder="Search apps… (Tab for frequent, ⌘→ for view)"
+        bind:value={query}
+        class="search-input"
+      />
+      <div class="search-meta">
+        {#if showFrequent && !query}
+          <span class="frequent-indicator">📈 Frequent Apps</span>
         {/if}
-        <span>{app.name}</span>
-      </button>
-    {/each}
+        <div class="view-toggle">
+          <button
+            class="view-btn"
+            class:active={viewMode === "grid"}
+            on:click={() => (viewMode = "grid")}
+          >
+            ⊞
+          </button>
+          <button
+            class="view-btn"
+            class:active={viewMode === "list"}
+            on:click={() => (viewMode = "list")}
+          >
+            ☰
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {#if loading}
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        Loading apps...
+      </div>
+    {/if}
   </div>
+
+  {#if !loading}
+    <div
+      class="grid"
+      class:list-view={viewMode === "list"}
+      class:empty={filteredApps.length === 0}
+    >
+      {#each filteredApps as app, index}
+        <button
+          class="tile"
+          class:selected={index === selectedIndex}
+          class:list-item={viewMode === "list"}
+          on:click={() => launch(app.bundle_id)}
+          on:mouseenter={() => selectApp(index)}
+        >
+          {#if app.icon_path}
+            <img
+              src="asset://localhost/{app.icon_path}"
+              alt={app.name}
+              loading="lazy"
+              class="app-icon"
+              on:error={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          {:else}
+            <div class="icon-placeholder">
+              {app.name.charAt(0).toUpperCase()}
+            </div>
+          {/if}
+          <div class="app-info">
+            <span class="app-name">{app.name}</span>
+            {#if viewMode === "list"}
+              <span class="bundle-id">{app.bundle_id}</span>
+            {/if}
+          </div>
+        </button>
+      {/each}
+
+      {#if filteredApps.length === 0 && query.trim()}
+        <div class="no-results">
+          <div class="no-results-icon">🔍</div>
+          <p>No apps found for "<strong>{query}</strong>"</p>
+          <p class="suggestion">
+            Try searching by app name or bundle identifier
+          </p>
+        </div>
+      {/if}
+    </div>
+  {/if}
 </main>
-
-<style>
-.container {
-  width: 100vw;
-  height: 100vh;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  background: rgba(240, 240, 240, 0.95);
-}
-
-input {
-  width: 100%;
-  padding: 0.6rem;
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 16px;
-  flex-grow: 1;
-  overflow-y: auto;
-}
-
-.tile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 0.5rem;
-}
-
-.tile img {
-  width: 64px;
-  height: 64px;
-}
-
-.tile span {
-  margin-top: 6px;
-  text-align: center;
-  font-size: 0.9rem;
-  word-break: break-word;
-}
-
-@media (prefers-color-scheme: dark) {
-  .container {
-    background: rgba(20, 20, 20, 0.95);
-    color: #f6f6f6;
-  }
-
-  input {
-    background: #2f2f2f;
-    color: #f6f6f6;
-    border: 1px solid #555;
-  }
-}
-</style>

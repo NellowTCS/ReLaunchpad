@@ -13,12 +13,21 @@
     "windows": [
       {
         "title": "relaunchpad",
-        "width": 800,
-        "height": 600
+        "width": 1000,
+        "height": 800,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": false,
+        "center": true,
+        "resizable": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      }
     }
   },
   "bundle": {
@@ -32,4 +41,5 @@
       "icons/icon.ico"
     ]
   }
+  
 }
