@@ -40,12 +40,13 @@ jobs:
         with:
           toolchain: stable
           override: true
-          working-directory: ReLaunchpad
 
       # Build Rust library
       - name: Build Rust library
         run: cargo build --verbose
+        working-directory: ReLaunchpad/src-tauri
 
       # Run Rust tests
       - name: Run Rust tests
         run: cargo test --verbose
+        working-directory: ReLaunchpad/src-tauri
