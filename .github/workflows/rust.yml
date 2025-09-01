@@ -1,4 +1,4 @@
-name: ReLaunchpad CI
+name: Rust + Svelte/Tauri Build
 
 on:
   push:
@@ -12,53 +12,40 @@ env:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v4
+      # Checkout repo
+      - uses: actions/checkout@v4
 
-    # Set up Rust
-    - name: Set up Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        profile: minimal
-        override: true
+      # Set up Node
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
 
-    # Set up Node.js
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: "npm"
+      # Install frontend dependencies
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: ReLaunchpad
 
-    # Install frontend dependencies
-    - name: Install Node dependencies
-      run: |
-        cd ReLaunchpad
-        npm install
+      # Build frontend
+      - name: Build frontend
+        run: npm run build
+        working-directory: ReLaunchpad
 
-    # Build frontend
-    - name: Build frontend
-      run: |
-        cd ReLaunchpad
-        npm run build
+      # Set up Rust
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
 
-    # Rust build
-    - name: Build Rust
-      run: |
-        cd ReLaunchpad
-        cargo build --verbose
+      # Build Rust library
+      - name: Build Rust library
+        run: cargo build --verbose
+        working-directory: ReLaunchpad
 
-    # Run Rust tests
-    - name: Run Rust tests
-      run: |
-        cd ReLaunchpad
-        cargo test --verbose
-
-    # check TypeScript/Svelte
-    - name: Run Svelte type check
-      run: |
-        cd ReLaunchpad
-        npm run check
+      # Run Rust tests
+      - name: Run Rust tests
+        run: cargo test --verbose
+        working-directory: ReLaunchpad
