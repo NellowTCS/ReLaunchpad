@@ -18,28 +18,22 @@ jobs:
       # Checkout repo
       - uses: actions/checkout@v4
 
-      - name: ls
-        run: |
-          ls
-          cd ReLaunchpad
-          
       # Set up Node
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          cache-dependency-path: 'ReLaunchpad/package-lock.json'
 
       # Install frontend dependencies
       - name: Install frontend dependencies
-        run: |
-          ls
-          npm install
-        working-directory: ReLaunchpad/Relaunchpad
+        run: npm install
+        working-directory: ReLaunchpad
 
       # Build frontend
       - name: Build frontend
         run: npm run build
-        working-directory: ReLaunchpad/Relaunchpad
+        working-directory: ReLaunchpad
 
       # Set up Rust
       - uses: actions-rs/toolchain@v1
@@ -50,9 +44,9 @@ jobs:
       # Build Rust library
       - name: Build Rust library
         run: cargo build --verbose
-        working-directory: ReLaunchpad/Relaunchpad
+        working-directory: ReLaunchpad
 
       # Run Rust tests
       - name: Run Rust tests
         run: cargo test --verbose
-        working-directory: ReLaunchpad/Relaunchpad
+        working-directory: ReLaunchpad
