@@ -28,12 +28,10 @@ jobs:
       # Install frontend dependencies
       - name: Install frontend dependencies
         run: npm install
-        working-directory: ReLaunchpad
-
+        
       # Build frontend
       - name: Build frontend
         run: npm run build
-        working-directory: ReLaunchpad
 
       # Set up Rust
       - uses: actions-rs/toolchain@v1
@@ -44,9 +42,7 @@ jobs:
       # Build Rust library
       - name: Build Rust library
         run: cargo build --verbose
-        working-directory: ReLaunchpad
 
       # Run Rust tests
       - name: Run Rust tests
         run: cargo test --verbose
-        working-directory: ReLaunchpad
