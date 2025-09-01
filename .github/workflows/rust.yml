@@ -26,7 +26,9 @@ jobs:
 
       # Install frontend dependencies
       - name: Install frontend dependencies
-        run: npm install
+        run: |
+          ls
+          npm install
         working-directory: ReLaunchpad/Relaunchpad
 
       # Build frontend
