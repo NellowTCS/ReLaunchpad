@@ -53,7 +53,7 @@ jobs:
 
       # Upload built app as artifact
       - name: Upload Tauri App Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ReLaunchpad-macos
           path: ReLaunchpad/src-tauri/target/release/bundle/macos
