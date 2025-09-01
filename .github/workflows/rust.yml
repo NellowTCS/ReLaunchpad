@@ -1,0 +1,54 @@
+name: ReLaunchpad CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  NODE_VERSION: 20
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Set up Rust
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    # Set up Node.js
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: "npm"
+
+    # Install frontend dependencies
+    - name: Install Node dependencies
+      run: npm install
+
+    # Build frontend
+    - name: Build frontend
+      run: npm run build
+
+    # Rust build
+    - name: Build Rust
+      run: cargo build --verbose
+
+    # Run Rust tests
+    - name: Run Rust tests
+      run: cargo test --verbose
+
+    # Optional: check TypeScript/Svelte
+    - name: Run Svelte type check
+      run: npm run check
