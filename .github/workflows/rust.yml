@@ -43,7 +43,7 @@ jobs:
 
       # Build Tauri app (frontend + Rust backend) in release mode
       - name: Build Tauri app
-        run: npm run tauri build -- --release
+        run: npm run tauri -- build --release
         working-directory: ReLaunchpad
 
       # Run Rust tests (release)
