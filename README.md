@@ -1,16 +1,17 @@
 # ReLaunchpad
 
-## Quick start:
+## Quick start
 
-1. ### Install dependencies:
+1. ### Install dependencies
 
    - Node & npm (recommended latest LTS)
    - Rust + cargo (stable)
    - Tauri prerequisites (macOS: Xcode command line tools, etc.)
-1. ### From project root:
+
+1. ### From project root
 
    ```bash
+   cd Build
    npm install
    npm run tauri:dev
    ```
-
