@@ -1,0 +1,93 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 
+      Clipping path to make everything inside a squircle shape.
+      This is the main container for our icon.
+    -->
+    <clipPath id="iconShape">
+      <rect x="2" y="2" width="124" height="124" rx="28" ry="28" />
+    </clipPath>
+
+    <!-- 
+      A subtle inner shadow to give the glass background some depth.
+      This makes it feel like a "pane" of glass.
+    -->
+    <filter id="innerShadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feFlood flood-color="#ffffff" flood-opacity="0.1"/>
+      <feComposite in2="offsetblur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- A soft drop shadow for the entire icon -->
+    <filter id="mainIconShadow" x="-50%" y="-50%" width="220%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.6"/>
+      <feOffset dx="-1" dy="1" result="offsetblur"/>
+      <feFlood flood-color="#000000" flood-opacity="0.7"/>
+      <feComposite in2="offsetblur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- A smaller, sharper drop shadow for the inner icons -->
+    <filter id="innerIconShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.6"/>
+      <feOffset dx="-0.9" dy="0.9" result="offsetblur"/>
+      <feFlood flood-color="#000000" flood-opacity="0.7"/>
+      <feComposite in2="offsetblur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+  </defs>
+
+  <!-- 
+    Apply the main drop shadow to the entire icon.
+    This makes the whole squircle appear to float.
+  -->
+  <g filter="url(#mainIconShadow)">
+
+    <!-- Group everything and apply the squircle clip -->
+    <g clip-path="url(#iconShape)">
+
+      <!-- 
+        Dark, semi-transparent "frosted glass" background.
+        The color is a dark grey with 80% opacity (alpha=0.8).
+      -->
+      <rect x="0" y="0" width="128" height="128" fill="#ffffff" fill-opacity="0.5" filter="url(#innerShadow)" />
+
+      <g filter="url(#innerIconShadow)">
+        <!-- Grid of 8 colored squircles -->
+        <g>
+          <!-- Row 1 -->
+          <rect x="23" y="23" width="24" height="24" rx="7" fill="#3ae338" />
+          <rect x="52" y="23" width="24" height="24" rx="7" fill="#fec117" />
+          <rect x="81" y="23" width="24" height="24" rx="7" fill="#f68712" />
+          
+          <!-- Row 2 -->
+          <rect x="23" y="52" width="24" height="24" rx="7" fill="#e6261e" />
+          <!-- Center position is for the "R" -->
+          <rect x="81" y="52" width="24" height="24" rx="7" fill="#fd405d" />
+          
+          <!-- Row 3 -->
+          <rect x="23" y="81" width="24" height="24" rx="7" fill="#a547d6" />
+          <rect x="52" y="81" width="24" height="24" rx="7" fill="#1a93f5" />
+          <rect x="81" y="81" width="24" height="24" rx="7" fill="#2ecfa9" />
+        </g>
+
+        <!-- The "R" in the center -->
+        <text x="64" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="900" text-anchor="middle" fill="#b5c5c7">R</text>
+      </g>
+      <!-- =============================================================== -->
+
+    </g>
+  </g>
+</svg>
