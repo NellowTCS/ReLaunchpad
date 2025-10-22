@@ -1,5 +1,7 @@
 # ReLaunchpad
 
+This is very unstable, and icons are rather broken! Use at your own risk. 
+
 ## Quick start
 
 1. ### Install dependencies
