@@ -30,7 +30,16 @@ jobs:
         run: npm install
         working-directory: Build
 
-      # Cache Rust/Cargo dependencies
+      # Install Rust toolchain and add macOS targets (x86_64 + arm64)
+      - name: Setup Rust toolchain and targets
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      # Cache Rust/Cargo registry
       - name: Cache Cargo registry
         uses: actions/cache@v3
         with:
@@ -41,12 +50,79 @@ jobs:
           restore-keys: |
             cargo-cache-${{ runner.os }}-
 
-      # Build Tauri app (frontend + Rust backend) in release mode
-      - name: Build Tauri app
+      # Build Rust backend for both macOS architectures
+      - name: Build Rust targets (x86_64 + aarch64)
+        run: |
+          set -e
+          pushd Build/src-tauri
+          # Build both targets; artifacts go to target/<target>/release/
+          cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target x86_64-apple-darwin
+          popd
+
+      # Build Tauri app (this creates the .app bundle; we'll replace the binary inside with a universal binary)
+      - name: Build Tauri app (bundle)
         run: npm run tauri:build
         working-directory: Build
 
-      # Run Rust tests (release)
+      # Create a universal (universal2) binary by lipo'ing the two architecture builds and inserting it into the .app bundle
+      - name: Produce universal macOS binary and inject into .app
+        run: |
+          set -euo pipefail
+
+          MACOS_BUNDLE_DIR="Build/src-tauri/target/release/bundle/macos"
+          if [ ! -d "$MACOS_BUNDLE_DIR" ]; then
+            echo "No macOS bundle directory found at $MACOS_BUNDLE_DIR"
+            exit 1
+          fi
+
+          # Find the first .app produced
+          APP_PATH=$(find "$MACOS_BUNDLE_DIR" -maxdepth 1 -name "*.app" -print -quit)
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle found in $MACOS_BUNDLE_DIR"
+            exit 1
+          fi
+          echo "Using app bundle: $APP_PATH"
+
+          # Locate the executable inside the .app (Contents/MacOS/<executable>)
+          EXECUTABLE_NAME=$(ls "$APP_PATH/Contents/MacOS" | head -n 1)
+          if [ -z "$EXECUTABLE_NAME" ]; then
+            echo "Could not find executable in $APP_PATH/Contents/MacOS"
+            exit 1
+          fi
+          echo "Executable inside .app: $EXECUTABLE_NAME"
+
+          # Paths to the arch-specific built binaries
+          BIN_ARM="Build/src-tauri/target/aarch64-apple-darwin/release/$EXECUTABLE_NAME"
+          BIN_X86="Build/src-tauri/target/x86_64-apple-darwin/release/$EXECUTABLE_NAME"
+
+          if [ ! -f "$BIN_ARM" ]; then
+            echo "Missing aarch64 build at $BIN_ARM"
+            ls -la Build/src-tauri/target/aarch64-apple-darwin/release || true
+            exit 1
+          fi
+          if [ ! -f "$BIN_X86" ]; then
+            echo "Missing x86_64 build at $BIN_X86"
+            ls -la Build/src-tauri/target/x86_64-apple-darwin/release || true
+            exit 1
+          fi
+
+          UNIVERSAL_BIN_TEMP="$(mktemp -t universal-binary)"
+          lipo -create "$BIN_ARM" "$BIN_X86" -output "$UNIVERSAL_BIN_TEMP"
+          chmod +x "$UNIVERSAL_BIN_TEMP"
+
+          # Replace the executable inside the .app with the universal binary
+          cp "$UNIVERSAL_BIN_TEMP" "$APP_PATH/Contents/MacOS/$EXECUTABLE_NAME"
+          rm -f "$UNIVERSAL_BIN_TEMP"
+
+          # ad-hoc codesign to satisfy Gatekeeper checks for local testing
+          # Use an ad-hoc identity ('-') so it doesn't require a signing certificate
+          if command -v codesign >/dev/null 2>&1; then
+            echo "Ad-hoc codesigning the app bundle (this is optional)"
+            codesign --force --sign - --timestamp=none "$APP_PATH" || echo "codesign failed or is not required"
+          fi
+
+      # Run Rust tests on the host (tests can't be run for non-host cross-targets)
       - name: Run Rust tests
         run: cargo test --release
         working-directory: Build/src-tauri
