@@ -1,5 +1,13 @@
 # ReLaunchpad
 
+---
+
+## Archived: 05/25/26
+
+There's better alternatives out [there](https://letmegooglethat.com/?q=macos+launchpad+revivals+github).
+
+---
+
 **The MacOS Launchpad, brought back from the dead.**
 
 > **Status:** Very unstable: icons are broken and functionality may be incomplete. Use at your own risk!
